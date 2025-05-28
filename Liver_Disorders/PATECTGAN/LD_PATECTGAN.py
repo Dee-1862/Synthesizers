@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from ucimlrepo import fetch_ucirepo 
 from snsynth.transform import *
-from snsynth.pytorch.nn import DPCTGAN
+from snsynth.pytorch.nn import PATECTGAN
 from snsynth.pytorch import PytorchDPSynthesizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, mean_absolute_percentage_error
@@ -17,7 +17,6 @@ import time
 from tqdm import tqdm
 import openpyxl
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.preprocessing import LabelEncoder
 import sys
 import os
 import warnings
@@ -34,19 +33,20 @@ def restore_print():
 
 ##### 1. Loading and Preparing Original Data #####
 print("##### Loading data.....")
-import pandas as pd
-target_variable = 'quality'
-url = "https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/winequality-red.csv"
-df = pd.read_csv(url, sep=';')
+target_variable = 'drinks'
+liver_disorder = fetch_ucirepo(id=60)
+df = pd.DataFrame(liver_disorder.data.original)
 row_cnt = df.shape[0]
 print(f"Original dataset loaded with {row_cnt} rows.")
 
 ##### 2. Defining columns and bounds #####
-continuous_cols =  list(col for col in df.columns if col != target_variable)
+categorical_cols = ['selector']
+df = pd.get_dummies(df, columns=categorical_cols, drop_first=False, dtype=int)
+continuous_cols = list(col for col in df.columns if col != target_variable)
 categorical_cols = []  # No categorical columns in this dataset
 
 
-def synthetic_pipeline(model, X_test, y_test, continuous_cols, categorical_cols, num_synthetic_datasets=10):
+def synthetic_pipeline(model, X_test, y_test, continuous_cols, num_synthetic_datasets=10):
 
     synth_mae_b, synth_mape_b, synth_rmse_b = [], [], []
     synth_mae_c, synth_mape_c, synth_rmse_c = [], [], []
@@ -57,17 +57,7 @@ def synthetic_pipeline(model, X_test, y_test, continuous_cols, categorical_cols,
     for i in tqdm(range(num_synthetic_datasets), desc="Generating synthetic datasets", unit="dataset"):
 
         tt = TableTransformer([
-            StandardScaler(lower=float(df['fixed acidity'].min()), upper=float(df['fixed acidity'].max())), # fixed acidity
-            StandardScaler(lower=float(df['volatile acidity'].min()), upper=float(df['volatile acidity'].max())), # volatile acidity
-            StandardScaler(lower=float(df['citric acid'].min()), upper=float(df['citric acid'].max())), # citric acid
-            StandardScaler(lower=float(df['residual sugar'].min()), upper=float(df['residual sugar'].max())), # residual sugar
-            StandardScaler(lower=float(df['chlorides'].min()), upper=float(df['chlorides'].max())), # chlorides
-            StandardScaler(lower=float(df['free sulfur dioxide'].min()), upper=float(df['free sulfur dioxide'].max())), # free sulfur dioxide
-            StandardScaler(lower=float(df['total sulfur dioxide'].min()), upper=float(df['total sulfur dioxide'].max())), # total sulfur dioxide
-            StandardScaler(lower=float(df['density'].min()), upper=float(df['density'].max())), # density
-            StandardScaler(lower=float(df['pH'].min()), upper=float(df['pH'].max())), # pH
-            StandardScaler(lower=float(df['sulphates'].min()), upper=float(df['sulphates'].max())), # sulphates
-            StandardScaler(lower=float(df['alcohol'].min()), upper=float(df['alcohol'].max())) # alcohol
+            StandardScaler(lower=df[col].min(), upper=df[col].max()) for col in continuous_cols
         ])
         
         iteration_seed = 63 + i
@@ -78,7 +68,7 @@ def synthetic_pipeline(model, X_test, y_test, continuous_cols, categorical_cols,
         delta_val = 1 / (row_cnt ** 1.1)
         synth = PytorchDPSynthesizer(
         epsilon_val,
-        DPCTGAN(epochs=epochs_val, delta=delta_val, cuda = True),
+        PATECTGAN(regularization='dragan', epochs=epochs_val, delta=delta_val, cuda = True),
         None
         )
 
@@ -191,7 +181,7 @@ for model_name, model in models.items():
 
     
     # Setting B & C using the function
-    results = synthetic_pipeline(model, X_test, y_test, continuous_cols, categorical_cols, num_synthetic_datasets = 10)
+    results = synthetic_pipeline(model, X_test, y_test, continuous_cols, num_synthetic_datasets = 10)
 
     for setting in ['Setting B', 'Setting C']:
         print(f"\nSetting: {setting}")
@@ -207,7 +197,7 @@ for model_name, model in models.items():
         "RMSE": results[setting]['RMSE'][0]
         }])], ignore_index=True)
 
-excel_name = "Wine_Quality/DPCTGAN/WQ_DPCTGAN_Results.xlsx"
+excel_name = "Liver_Disorders/PATECTGAN/LD_PATECTGAN_Results.xlsx"
 metrics_df.to_excel(excel_name, index = False)
 print(f"\nResults saved to {excel_name}")
 

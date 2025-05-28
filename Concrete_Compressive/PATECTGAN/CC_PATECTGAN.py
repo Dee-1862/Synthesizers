@@ -42,7 +42,7 @@ row_cnt = df.shape[0]
 print(f"Original dataset loaded with {row_cnt} rows.")
 
 ##### 2. Defining columns and bounds #####
-continuous_cols = ['Cement', 'Blast Furnace Slag', 'Fly Ash', 'Water', 'Superplasticizer', 'Coarse Aggregate', 'Fine Aggregate', 'Age']
+continuous_cols = list(col for col in df.columns if col != target_variable)
 categorical_cols = []  # No categorical columns in this dataset
 
 
@@ -57,14 +57,7 @@ def synthetic_pipeline(model, X_test, y_test, continuous_cols, num_synthetic_dat
     for i in tqdm(range(num_synthetic_datasets), desc="Generating synthetic datasets", unit="dataset"):
 
         tt = TableTransformer([
-            StandardScaler(lower=float(df['Cement'].min()), upper=float(df['Cement'].max())),
-            StandardScaler(lower=float(df['Blast Furnace Slag'].min()), upper=float(df['Blast Furnace Slag'].max())),
-            StandardScaler(lower=float(df['Fly Ash'].min()), upper=float(df['Fly Ash'].max())),
-            StandardScaler(lower=float(df['Water'].min()), upper=float(df['Water'].max())),
-            StandardScaler(lower=float(df['Superplasticizer'].min()), upper=float(df['Superplasticizer'].max())),
-            StandardScaler(lower=float(df['Coarse Aggregate'].min()), upper=float(df['Coarse Aggregate'].max())),
-            StandardScaler(lower=float(df['Fine Aggregate'].min()), upper=float(df['Fine Aggregate'].max())),
-            StandardScaler(lower=int(df['Age'].min()), upper=int(df['Age'].max())),
+            StandardScaler(lower=df[col].min(), upper=df[col].max()) for col in continuous_cols
         ])
         
         iteration_seed = 63 + i

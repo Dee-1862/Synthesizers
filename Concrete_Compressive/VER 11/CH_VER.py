@@ -30,7 +30,7 @@ row_cnt = df.shape[0]
 print(f"Original dataset loaded with {row_cnt} rows.")
 
 ##### 2. Defining columns and bounds #####
-continuous_cols = ['Cement', 'Blast Furnace Slag', 'Fly Ash', 'Water', 'Superplasticizer', 'Coarse Aggregate', 'Fine Aggregate', 'Age']
+continuous_cols = list(col for col in df.columns if col != target_variable)
 categorical_cols = []  # No categorical columns in this dataset
 x_bounds = {col: (df[col].min(), df[col].max()) for col in continuous_cols}
 

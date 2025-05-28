@@ -57,17 +57,7 @@ def synthetic_pipeline(model, X_test, y_test, continuous_cols, categorical_cols,
     for i in tqdm(range(num_synthetic_datasets), desc="Generating synthetic datasets", unit="dataset"):
 
         tt = TableTransformer([
-            StandardScaler(lower=float(df['fixed acidity'].min()), upper=float(df['fixed acidity'].max())), # fixed acidity
-            StandardScaler(lower=float(df['volatile acidity'].min()), upper=float(df['volatile acidity'].max())), # volatile acidity
-            StandardScaler(lower=float(df['citric acid'].min()), upper=float(df['citric acid'].max())), # citric acid
-            StandardScaler(lower=float(df['residual sugar'].min()), upper=float(df['residual sugar'].max())), # residual sugar
-            StandardScaler(lower=float(df['chlorides'].min()), upper=float(df['chlorides'].max())), # chlorides
-            StandardScaler(lower=float(df['free sulfur dioxide'].min()), upper=float(df['free sulfur dioxide'].max())), # free sulfur dioxide
-            StandardScaler(lower=float(df['total sulfur dioxide'].min()), upper=float(df['total sulfur dioxide'].max())), # total sulfur dioxide
-            StandardScaler(lower=float(df['density'].min()), upper=float(df['density'].max())), # density
-            StandardScaler(lower=float(df['pH'].min()), upper=float(df['pH'].max())), # pH
-            StandardScaler(lower=float(df['sulphates'].min()), upper=float(df['sulphates'].max())), # sulphates
-            StandardScaler(lower=float(df['alcohol'].min()), upper=float(df['alcohol'].max())) # alcohol
+            StandardScaler(lower=df[col].min(), upper=df[col].max()) for col in continuous_cols
         ])
         
         iteration_seed = 63 + i

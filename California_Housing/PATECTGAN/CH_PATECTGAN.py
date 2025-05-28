@@ -40,7 +40,7 @@ row_cnt = df.shape[0]
 print(f"Original dataset loaded with {row_cnt} rows.")
 
 ##### 2. Defining columns and bounds #####
-continuous_cols = ['MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup', 'Latitude', 'Longitude']
+continuous_cols = list(col for col in df.columns if col != target_variable)
 categorical_cols = []  # No categorical columns in this dataset
 
 def synthetic_pipeline(model, X_vals, Y_vals, X_test, y_test, continuous_cols, num_synthetic_datasets=10):
@@ -54,14 +54,7 @@ def synthetic_pipeline(model, X_vals, Y_vals, X_test, y_test, continuous_cols, n
     for i in tqdm(range(num_synthetic_datasets), desc="Generating synthetic datasets", unit="dataset"):
 
         tt = TableTransformer([
-            StandardScaler(lower=float(df['MedInc'].min()), upper=float(df['MedInc'].max())),
-            StandardScaler(lower=float(df['HouseAge'].min()), upper=float(df['HouseAge'].max())),
-            StandardScaler(lower=float(df['AveRooms'].min()), upper=float(df['AveRooms'].max())),
-            StandardScaler(lower=float(df['AveBedrms'].min()), upper=float(df['AveBedrms'].max())),
-            StandardScaler(lower=float(df['Population'].min()), upper=float(df['Population'].max())),
-            StandardScaler(lower=float(df['AveOccup'].min()), upper=float(df['AveOccup'].max())),
-            StandardScaler(lower=float(df['Latitude'].min()), upper=float(df['Latitude'].max())),
-            StandardScaler(lower=float(df['Longitude'].min()), upper=float(df['Longitude'].max())),
+            StandardScaler(lower=df[col].min(), upper=df[col].max()) for col in continuous_cols
         ])
         
         iteration_seed = 63 + i
