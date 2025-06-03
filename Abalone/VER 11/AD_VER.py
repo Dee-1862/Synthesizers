@@ -45,6 +45,7 @@ def synthetic_pipeline(model, X_vals, Y_vals, X_test, y_test, continuous_cols, x
 
     synth_mae_b, synth_mape_b, synth_rmse_b = [], [], []
     synth_mae_c, synth_mape_c, synth_rmse_c = [], [], []
+    new_synth_data_df = None
 
     print(f"\n##### Generating {num_synthetic_datasets} Synthetic Datasets and Evaluating #####")
     start_time = time.time()
@@ -70,6 +71,12 @@ def synthetic_pipeline(model, X_vals, Y_vals, X_test, y_test, continuous_cols, x
         for idx, col in enumerate(continuous_cols):
             X_syn[:, idx] = np.clip(X_syn[:, idx], x_bounds[col][0], x_bounds[col][1])
         Y_syn = np.clip(Y_syn, y_lb, y_ub)
+
+        # Combine X_syn and Y_syn into a DataFrame
+        synth_data_df = pd.DataFrame(X_syn, columns=continuous_cols)
+        synth_data_df[target_variable] = Y_syn
+        
+        new_synth_data_df = synth_data_df.copy()
 
         Xs_train, Xs_test, ys_train, ys_test = train_test_split(X_syn, Y_syn, test_size=0.2, random_state=63)
 
@@ -100,7 +107,8 @@ def synthetic_pipeline(model, X_vals, Y_vals, X_test, y_test, continuous_cols, x
             'MAE': (np.mean(synth_mae_c), np.std(synth_mae_c)),
             'MAPE': (np.mean(synth_mape_c), np.std(synth_mape_c)),
             'RMSE': (np.mean(synth_rmse_c), np.std(synth_rmse_c)),
-        }
+        },
+        'synth_data_df': new_synth_data_df
     }
 
 
@@ -141,6 +149,7 @@ models = {
 }
 
 metrics_df = pd.DataFrame(columns=["Setting", "Model", "MAE", "MAPE", "RMSE"])
+synthetic_datasets_per_model = {} 
 
 for model_name, model in models.items():
     print(f"\n\n############### Model Running: {model_name} ###############")
@@ -168,7 +177,7 @@ for model_name, model in models.items():
 
     
     # Setting B & C using the function
-    results = synthetic_pipeline(model, X_vals, Y_vals, X_test, y_test, continuous_cols, x_bounds, (y_lb, y_ub), num_synthetic_datasets = 10)
+    results = synthetic_pipeline(model, X_vals, Y_vals, X_test, y_test, continuous_cols, x_bounds, (y_lb, y_ub), num_synthetic_datasets = 1)
 
     for setting in ['Setting B', 'Setting C']:
         print(f"\nSetting: {setting}")
@@ -184,8 +193,16 @@ for model_name, model in models.items():
         "RMSE": results[setting]['RMSE'][0]
         }])], ignore_index=True)
 
+    # Store the last synthetic dataset for the current model
+    synthetic_datasets_per_model[model_name] = results['synth_data_df']
+
+    if model_name in synthetic_datasets_per_model:
+        print(synthetic_datasets_per_model[model_name].head())
+    else:
+        print("No Model found for this model")
+
 excel_name = "Abalone/VER 11/AD_VER11_Results.xlsx"
-metrics_df.to_excel(excel_name, index = False)
+#metrics_df.to_excel(excel_name, index = False)
 print(f"\nResults saved to {excel_name}")
 
 
